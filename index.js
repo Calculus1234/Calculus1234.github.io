@@ -26,7 +26,7 @@ var S = {
       if (i !== -1) {
         S.UI.simulate(decodeURI(action).substring(i + 3));
       } else {
-        S.UI.simulate('|#countdown 3||致|和蔼可亲的|貌美如花的|周老师：|三尺讲台|仰慕您无所不知|口若悬河的激情澎湃|饭前课后|感动于一句一句|细致入微的体贴关照|真想|上百尺危楼|摘下星星为你庆贺|真想|离太阳更近|放声高歌为你祝福：|周老师|祝你生日快乐！|高一十六十七班全体敬上亅#icon heart|#icon heart-empty|#icon heart');
+        S.UI.simulate('|#countdown 3||致|可亲的|貌美的|周老师：|三尺讲台|仰慕您|无所不知|口若悬河的|激情澎湃|饭前课后|感动于|一句一句|细致入微的|体贴关照|真想|上百尺危楼|摘下星星|为你庆贺|真想|离太阳更近|放声高歌|为你祝福：|周老师|生日快乐！|高一十六十七班|全体敬上亅#icon heart|#icon heart-empty|#icon heart');
       }
 
       S.Drawing.loop(function () {
